@@ -2,12 +2,15 @@
 #include <iostream>
 #include <stdio.h>
 #include <cstring>
+#include <fstream>
 #include "font.h"
 
 #define STACKSIZE 100
-#define PC_START 0
+#define PC_START 0x200
+#define WIDTH 64
+#define HEIGHT 32
 uint8_t RAM[4096];
-uint8_t display[8][4];
+uint8_t display[WIDTH][HEIGHT];
 
 uint16_t PC;
 uint16_t I;
@@ -39,6 +42,7 @@ uint8_t vC;
 uint8_t vD;
 uint8_t vE;
 uint8_t vF;
+uint8_t* registers[16] = {&v0,&v1,&v2,&v3,&v4,&v5,&v6,&v7,&v8,&v9,&vA,&vB,&vC,&vD,&vE,&vF};
 struct stack{
 	uint16_t* base;
 	int size;
@@ -58,9 +62,10 @@ struct stack{
 	}
 	
 };
+void printDisplay();
 void fetch(){
 	if(PC >=4096)
-		PC = 0;
+		PC = PC_START;
 	inst = (RAM[PC]<< 8) & 0xFF00;
 	inst= inst | ((RAM[PC+1]) & 0x00FF);
 
@@ -74,8 +79,18 @@ void decode(){
 	NNN =  (inst & 0x0FFF);
 	switch(type){
 		case 0x0:
+			std::cout<<"CLEARING SCREEN \n";
+			if(X == 0x0 && Y == 0xE && N == 0x0){
+				//CLEAR SCREEN
+				for(int i = 0; i<WIDTH; i++){
+					memset(display[i],0,sizeof(display[i]));
+				}
+			}
 			break;
 		case 0x1:
+			//JUMP
+			//DOESN'T increment PC after so set PC to NNN-2
+			PC = NNN-2;
 			break;
 		case 0x2:
                         break;
@@ -86,20 +101,64 @@ void decode(){
 		case 0x5:
                         break;
 		case 0x6:
+			std::cout<<"SET REGISTER X to NN "<<+X<<"  "<<+NN<<'\n';
+			*registers[X] = NN;
                         break;
 		case 0x7:
+			std::cout<<"ADDED NN to REG X "<<+X<<"  "<<+NN<<'\n';
+			*registers[X] += NN;
                         break;
 		case 0x8:
                         break;
 		case 0x9:
                         break;
 		case 0xA:
+			I = NNN;
                         break;
 		case 0xB:
                         break;
 		case 0xC:
                         break;
 		case 0xD:
+			//DRAW
+			{
+				int x;
+				int y = *registers[Y] % HEIGHT;
+				vF = 0x00;
+				uint8_t spriteData;
+				int counter;
+				for(int i = 0; i<N; i++){
+					x = *registers[X] % WIDTH;
+					counter = 7;
+					spriteData = RAM[I+i];
+//					std::cout<<"Sprite Data" <<+spriteData<<'\n';
+					while(counter>=0){
+						if(((spriteData >> counter)& 0x0001)){
+							if(display[x][y]==1){
+//								std::cout<<"TURNED OFF PIXEL at X: " << +x << "AND Y: " << y<<'\n'; 
+								display[x][y]=0;
+								vF=0x01;
+							}
+							else{
+//								std::cout<<"TURNED ON PIXEL at X: " << x << "AND Y: " << y<<'\n';
+								display[x][y]=1;
+							}
+						}
+						x++;
+//						std::cout<<"INC x\n";
+						counter--;
+						if(x>=WIDTH){
+							break;
+						}
+							
+					}
+					y++;
+					if(y>=HEIGHT){
+						break;
+					}
+				}
+			}
+			printDisplay();
                         break;
 		case 0xE:
                         break;
@@ -110,6 +169,35 @@ void decode(){
 	}
 	PC += 2;
 }
+void printDisplay(){
+	char block = 219;
+	for(int i = 0; i<HEIGHT; i++){
+		for(int j=0; j<WIDTH; j++){
+			if(+display[j][i]==1){
+				std::cout<< "@" ;	
+			}
+			else{
+				std::cout<<" ";
+			}
+			//std::cout << +display[j][i]<<" ";
+		}
+		std::cout<<" NEW LINE "<<'\n';
+	}
+	std::cout<<'\n';
+};
+void loadProgram(){
+	std::ifstream program;
+	program.open("ibm.ch8");
+	int input;
+	int start = PC;
+	while(program){
+		input = program.get();
+		std::cout<<std::hex<<input<<" ";
+		RAM[start]=static_cast<uint8_t>(input);
+		start++;
+	}
+	std::cout << "\n";
+}
 int main(){
 	stack test;
 	test.push(0b00000010);
@@ -119,15 +207,17 @@ int main(){
 	while(test.size){
 	std::cout << test.top()<<'\n';
 	test.pop();
-	RAM[0]=0b00010010;
-	RAM[1]=0b00110100;
+	RAM[0]=0x00;
+	RAM[1]=0xE0;
 	RAM[2]=0b01010110;
 	RAM[3]=0b01111000;
 	}
-	for(int i=0; i<2;i++){
+	loadProgram();
+	printDisplay();
+	for(int i=0; 1==1;i++){
 		fetch();
 		decode();
-	std::cout<< "X: " << +X << " Y: " << +Y << " N: " << +N << " NN: " << NN << " NNN: " << NNN << "\n";
+	//std::cout<< "X: " << std::hex <<+X << " Y: " << +Y << " N: " << +N << " NN: " << NN << " NNN: " << NNN << "\n";
 	
 	}
 	return 0;
