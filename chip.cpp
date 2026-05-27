@@ -5,14 +5,17 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include "font.h"
+#include "timers.h"
 
 #define STACKSIZE 100
 #define PC_START 0x200
 #define WIDTH 64
 #define HEIGHT 32
 
+timer counter;
+uint8_t iCount; //to count number of instructions completed since last timer decrement
 bool SHIFTFLAG;
 bool JOFFSETFLAG = 0;
 
@@ -138,8 +141,8 @@ void decode(){
 			switch(N){
 				case(0):
 					*registers[X] = *registers[Y];
-					break;
-			        case(1):
+			        	break;
+				case(1):
 					*registers[X] = *registers[X] | *registers[Y];
                                         break;
 				case(2):
@@ -304,6 +307,7 @@ void loadProgram(){
 }
 int main(){
 	stack test;
+	iCount = 0;	
 	test.push(0b00000010);
 	test.push(0b00000001);
 	PC = PC_START;
@@ -318,11 +322,27 @@ int main(){
 	}
 	loadProgram();
 	printDisplay();
+	counter.init();
 	for(int i=0; 1==1;i++){
+		counter.start();
+		if(iCount == 10){
+			iCount = 0;
+			//	std::cout << "1 60th of a second!\n";
+                        if(delay){
+                                delay--;
+                        }
+			if(timer){
+				timer--;
+			}
+                }
 		fetch();
 		decode();
+		iCount++;
+		counter.endAndWait();
+		
 	//std::cout<< "X: " << std::hex <<+X << " Y: " << +Y << " N: " << +N << " NN: " << NN << " NNN: " << NNN << "\n";
 	
 	}
+	counter.kill();
 	return 0;
 }
