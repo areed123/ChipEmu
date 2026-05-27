@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <fstream>
+#include <SDL.h>
 #include "font.h"
 
 #define STACKSIZE 100
@@ -149,15 +150,17 @@ void decode(){
 
                                         break;
 	      			case(4):
-					uint8_t sum;
+					{
+						uint8_t sum;
 					
-					sum  = *registers[X]+*registers[Y];
-					if(sum < *registers[X] || sum < *registers[Y]){
-						vF=1;
+						sum  = *registers[X]+*registers[Y];
+						if(sum < *registers[X] || sum < *registers[Y]){
+							vF=1;
+						}
+						else
+							vF=0;
+						*registers[X]=sum;
 					}
-					else
-						vF=0;
-					*registers[X]=sum;
                                         break;
                                 case(5):
 					if(*registers[X] >= *registers[Y]){
@@ -210,11 +213,12 @@ void decode(){
                         break;
 		case 0xB:
 			//JUMP WITH OFFSET
-			int reg = 0;
-			if(JOFFSETFLAG){
-				reg = +X;
-			}
+			{int reg = 0;
+				if(JOFFSETFLAG){
+					reg = +X;
+				}
 			PC = (NNN + *registers[reg] - 2);
+			}
                         break;
 		case 0xC:
 			*registers[X] = (NN & (std::rand() % NN));
