@@ -288,6 +288,22 @@ void decode(){
 			}
                         break;
 		case 0xF:
+			switch(NN){
+				case 0x07:
+					*registers[X] = delay;
+					break;
+				case 0x15:
+					delay = *registers[X];
+					break;
+				case 0x18:
+					sound = *registers[X];
+					break;
+				case 0x1E:
+					I = I + *registers[X];
+					break;
+				case 0x0A:
+
+			}
                         break;
 
 	
@@ -342,6 +358,7 @@ int main(){
 	printDisplay();
 	counter.init();
 	counter.setIPS(IPS);
+	pad.init();
 	for(int i=0; 1==1;i++){
 		counter.start();
 		if(iCount == std::ceil((0.f+IPS)/60.f)){
@@ -362,6 +379,7 @@ int main(){
 	//std::cout<< "X: " << std::hex <<+X << " Y: " << +Y << " N: " << +N << " NN: " << NN << " NNN: " << NNN << "\n";
 	
 	}
+	pad.kill();
 	counter.kill();
 	return 0;
 }
