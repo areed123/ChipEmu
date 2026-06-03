@@ -4,17 +4,22 @@
 #include <iostream>
 #include <stdio.h>
 #include <cstring>
+#include <cmath>
 #include <fstream>
 #include <SDL2/SDL.h>
 #include "font.h"
 #include "timers.h"
+#include "keypad.h"
 
 #define STACKSIZE 100
 #define PC_START 0x200
 #define WIDTH 64
 #define HEIGHT 32
+#define IPS 700
 
 timer counter;
+keypad pad;
+
 uint8_t iCount; //to count number of instructions completed since last timer decrement
 bool SHIFTFLAG;
 bool JOFFSETFLAG = 0;
@@ -268,6 +273,19 @@ void decode(){
 			printDisplay();
                         break;
 		case 0xE:
+			if(X>=0x0 && X<=0xF){
+				bool cond = pad.valPressed(X);
+				switch(NN){
+					case 0x9E:	//skip if key pressed
+						if(cond)
+							PC += 2;
+						break;
+					case 0xA1:	//skip if key not pressed
+						if(!cond)
+							PC += 2;
+						break;
+				}
+			}
                         break;
 		case 0xF:
                         break;
@@ -323,16 +341,17 @@ int main(){
 	loadProgram();
 	printDisplay();
 	counter.init();
+	counter.setIPS(IPS);
 	for(int i=0; 1==1;i++){
 		counter.start();
-		if(iCount == 10){
+		if(iCount == std::ceil((0.f+IPS)/60.f)){
 			iCount = 0;
 			//	std::cout << "1 60th of a second!\n";
                         if(delay){
                                 delay--;
                         }
-			if(timer){
-				timer--;
+			if(sound){
+				sound--;
 			}
                 }
 		fetch();

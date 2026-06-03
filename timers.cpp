@@ -4,6 +4,7 @@
 bool delayTimer::init(){
 	if(!SDL_Init(SDL_INIT_TIMER)){
 		reg = 0;
+		setIPS(700);
 		start = SDL_GetPerformanceCounter();
 		begin = SDL_GetPerformanceCounter();
 		return true;
@@ -13,6 +14,10 @@ bool delayTimer::init(){
 bool delayTimer::kill(){
 	SDL_QuitSubSystem(SDL_INIT_TIMER);
 	return true;
+}
+bool delayTimer::setIPS(int ips){
+	msPerInst = 1000.f / ips;
+	return(true);
 }
 bool delayTimer::setTimer(uint8_t time){
 	reg = time;
@@ -29,7 +34,7 @@ void delayTimer::decrement(){
 	end = SDL_GetPerformanceCounter();
 	float elapsed = (end - begin)/ (float)SDL_GetPerformanceFrequency() * 1000.0f;
 	//std::cout << elapsed << " milliseconds \n";
-	SDL_Delay(1.6666f - elapsed);
+	SDL_Delay((msPerInst) - elapsed);
 
 	
 }
@@ -52,4 +57,9 @@ void timer::endAndWait(){
 	SDL_Delay(1.6666f - elapsed);
 	//SDL_Delay(100.6666f - elapsed);
 
+}
+
+bool timer::setIPS(int ips){
+	msPerInst = 1000.f / ips;
+	return(true);
 }

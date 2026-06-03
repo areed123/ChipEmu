@@ -8,7 +8,9 @@ class delayTimer{
 		Uint64 start;
 		Uint64 end;
 		Uint64 begin;
+		float msPerInst;
 	public:
+		bool setIPS(int ips);
 		bool init();
 		bool kill();
 		uint8_t getRegVal();
@@ -18,8 +20,10 @@ class delayTimer{
 class timer{
 	Uint64 step;
 	Uint64 end;
+	float msPerInst;
 	public:
        		bool init();
+		bool setIPS(int ips);
 		bool kill();
 		void start();
 		void endAndWait();
