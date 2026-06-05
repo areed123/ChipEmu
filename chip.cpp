@@ -302,6 +302,13 @@ void decode(){
 					I = I + *registers[X];
 					break;
 				case 0x0A:
+					//block until key is pressed
+					if(keypad.pressed()){
+						
+					}
+					else {
+						PC -= 2;
+					}
 					break;
 			}
                         break;
