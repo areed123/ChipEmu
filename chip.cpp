@@ -302,7 +302,7 @@ void decode(){
 					I = I + *registers[X];
 					break;
 				case 0x0A:
-
+					break;
 			}
                         break;
 
