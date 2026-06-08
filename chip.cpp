@@ -307,19 +307,19 @@ void decode(){
                         break;
 		case 0xF:
 			switch(NN){
-				case 0x07:
+				case 0x07: //Set Register X to delay timer
 					*registers[X] = delay;
 					break;
-				case 0x15:
+				case 0x15: //Set Delay Timer
 					delay = *registers[X];
 					break;
-				case 0x18:
+				case 0x18: //Set Sound Timer
 					sound = *registers[X];
 					break;
-				case 0x1E:
+				case 0x1E:	//Add to index
 					I = I + *registers[X];
 					break;
-				case 0x0A:
+				case 0x0A:	//Get Key
 					//block until key is pressed
 					if(pressedKey != -1){
 						*registers[X] = pressedKey;			
@@ -327,6 +327,11 @@ void decode(){
 					else {
 						PC -= 2;
 					}
+					break;
+				case 0x29:	//Font Character
+					I = FONTSTART + (5*(*registers[X] & 0x0F));
+					break;
+				case 0x33:
 					break;
 			}
                         break;
@@ -394,6 +399,7 @@ int main(){
 	RAM[2]=0b01010110;
 	RAM[3]=0b01111000;
 	}
+	loadFont();
 	loadProgram();
 	printDisplay();
 	counter.init();
