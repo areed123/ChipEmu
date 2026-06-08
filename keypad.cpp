@@ -33,3 +33,68 @@ bool keypad::valPressed(uint8_t key){
 	//char* keys = SDL_GetKeyboardState(NULL);
 	return(SDL_GetKeyboardState(NULL)[map[key]]);	
 }
+int keypad::pollKeys(){
+	SDL_Event event;
+	bool flag = false;
+	int val = -1;
+	while(SDL_PollEvent (&event)){
+		if(!flag){
+			if(event.type == SDL_KEYDOWN){
+				flag = true;
+				switch(event.key.keysym.sym){
+					case SDLK_1:
+						val = 0x1;
+						break;
+					case SDLK_2:
+						val = 0x2;
+						break;
+					case SDLK_3:
+						val = 0x3;
+						break;
+					case SDLK_4:
+						val = 0xC;
+						break;
+					case SDLK_q:
+						val = 0x4;
+						break;
+					case SDLK_w:
+						val = 0x5;
+						break;
+					case SDLK_e:
+						val = 0x6;
+						break;
+					case SDLK_r:
+						val = 0xD;
+						break;
+					case SDLK_a:
+						val = 0x7;
+						break;
+					case SDLK_s:
+						val = 0x8;
+						break;
+					case SDLK_d:
+						val = 0x9;
+						break;
+					case SDLK_f:
+						val = 0xE;
+						break;
+					case SDLK_z:
+						val = 0xA;
+						break;
+					case SDLK_x:
+						val = 0x0;
+						break;
+					case SDLK_c:
+						val = 0xB;
+						break;
+					case SDLK_v:
+						val = 0xF;
+						break;
+					default:
+						flag = false;
+				}
+			}
+		}
+	}
+	return val;
+}
