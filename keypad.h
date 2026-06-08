@@ -7,7 +7,7 @@ class keypad{
 		bool init();
 		bool kill();
 		bool valPressed(uint8_t key);
-		int pressed(); //for checking if a key has been pressed since the previous instruction
+		int pollKeys(); //for checking if a key has been pressed since the previous instruction
 };
 
 #endif
