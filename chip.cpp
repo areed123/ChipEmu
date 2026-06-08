@@ -7,7 +7,6 @@
 #include <cmath>
 #include <fstream>
 #include <SDL2/SDL.h>
-#include "font.h"
 #include "timers.h"
 #include "keypad.h"
 
@@ -16,10 +15,28 @@
 #define WIDTH 64
 #define HEIGHT 32
 #define IPS 700
-
+#define FONTSTART 0x050 
 timer counter;
 keypad pad;
 int pressedKey;
+uint8_t font[16][5] = {	
+	{0xF0, 0x90, 0x90, 0x90, 0xF0}, // 0
+	{0x20, 0x60, 0x20, 0x20, 0x70}, // 1
+	{0xF0, 0x10, 0xF0, 0x80, 0xF0}, // 2
+	{0xF0, 0x10, 0xF0, 0x10, 0xF0}, // 3
+	{0x90, 0x90, 0xF0, 0x10, 0x10}, // 4
+	{0xF0, 0x80, 0xF0, 0x10, 0xF0}, // 5
+	{0xF0, 0x80, 0xF0, 0x90, 0xF0}, // 6
+	{0xF0, 0x10, 0x20, 0x40, 0x40}, // 7
+	{0xF0, 0x90, 0xF0, 0x90, 0xF0}, // 8
+	{0xF0, 0x90, 0xF0, 0x10, 0xF0}, // 9
+	{0xF0, 0x90, 0xF0, 0x90, 0x90}, // A
+	{0xE0, 0x90, 0xE0, 0x90, 0xE0}, // B
+	{0xF0, 0x80, 0x80, 0x80, 0xF0}, // C
+	{0xE0, 0x90, 0x90, 0x90, 0xE0}, // D
+	{0xF0, 0x80, 0xF0, 0x80, 0xF0}, // E
+	{0xF0, 0x80, 0xF0, 0x80, 0x80}  // F	
+};
 
 uint8_t iCount; //to count number of instructions completed since last timer decrement
 bool SHIFTFLAG;
@@ -338,7 +355,7 @@ void loadProgram(){
 	std::ifstream program;
 	program.open("ibm.ch8");
 	int input;
-	int start = PC;
+	int start = PC_START;
 	while(program){
 		input = program.get();
 		std::cout<<std::hex<<input<<" ";
@@ -346,6 +363,21 @@ void loadProgram(){
 		start++;
 	}
 	std::cout << "\n";
+}
+void loadFont(){
+	int cursor = FONTSTART;
+	try{
+		for(int i = 0; i<16; i++){
+			for(int j = 0; j<5; j++){
+				RAM[cursor] = font[i][j];
+				cursor++;
+			}
+		}
+	}
+	catch (...){
+		std::cout << "Error loading font!\n";
+	}
+
 }
 int main(){
 	stack test;
