@@ -19,6 +19,7 @@
 
 timer counter;
 keypad pad;
+int pressedKey;
 
 uint8_t iCount; //to count number of instructions completed since last timer decrement
 bool SHIFTFLAG;
@@ -303,8 +304,8 @@ void decode(){
 					break;
 				case 0x0A:
 					//block until key is pressed
-					if(keypad.pressed()){
-						
+					if(pressedKey != -1){
+						*registers[X] = pressedKey;			
 					}
 					else {
 						PC -= 2;
@@ -368,6 +369,7 @@ int main(){
 	pad.init();
 	for(int i=0; 1==1;i++){
 		counter.start();
+		pressedKey = pad.pollKeys();
 		if(iCount == std::ceil((0.f+IPS)/60.f)){
 			iCount = 0;
 			//	std::cout << "1 60th of a second!\n";
