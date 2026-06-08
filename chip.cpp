@@ -336,6 +336,21 @@ void decode(){
 					RAM[I+1] = (*registers[X]/10)%10;
 					RAM[I+2] = (*registers[X]%10);
 					break;
+				case 0x55: //Store
+					{
+						for(int i = 0; i<=X; i++){
+							RAM[I+i] = *registers[i];
+						}
+					}
+					break;
+				case 0x65: //Load
+					{
+
+						for(int i = 0; i<=X; i++){
+							*registers[i]=RAM[I+i];
+						}
+					}
+					break;
 			}
                         break;
 
