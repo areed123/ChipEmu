@@ -331,7 +331,10 @@ void decode(){
 				case 0x29:	//Font Character
 					I = FONTSTART + (5*(*registers[X] & 0x0F));
 					break;
-				case 0x33:
+				case 0x33:	//Binary Coded Decimal Conversion
+					RAM[I] = (*registers[X]/100);
+					RAM[I+1] = (*registers[X]/10)%10;
+					RAM[I+2] = (*registers[X]%10);
 					break;
 			}
                         break;
