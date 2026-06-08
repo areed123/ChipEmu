@@ -1,14 +1,30 @@
+#include <cstdlib>
+#include <ctime>
 #include <cstdint>
 #include <iostream>
 #include <stdio.h>
 #include <cstring>
+#include <cmath>
 #include <fstream>
+#include <SDL2/SDL.h>
 #include "font.h"
+#include "timers.h"
+#include "keypad.h"
 
 #define STACKSIZE 100
 #define PC_START 0x200
 #define WIDTH 64
 #define HEIGHT 32
+#define IPS 700
+
+timer counter;
+keypad pad;
+int pressedKey;
+
+uint8_t iCount; //to count number of instructions completed since last timer decrement
+bool SHIFTFLAG;
+bool JOFFSETFLAG = 0;
+
 uint8_t RAM[4096];
 uint8_t display[WIDTH][HEIGHT];
 
@@ -62,6 +78,9 @@ struct stack{
 	}
 	
 };
+
+stack theStack;
+
 void printDisplay();
 void fetch(){
 	if(PC >=4096)
@@ -79,12 +98,15 @@ void decode(){
 	NNN =  (inst & 0x0FFF);
 	switch(type){
 		case 0x0:
-			std::cout<<"CLEARING SCREEN \n";
 			if(X == 0x0 && Y == 0xE && N == 0x0){
 				//CLEAR SCREEN
 				for(int i = 0; i<WIDTH; i++){
 					memset(display[i],0,sizeof(display[i]));
 				}
+			}
+			else if(X == 0x0 && Y == 0xE && N == 0xE){
+				PC=theStack.top();
+				theStack.pop();
 			}
 			break;
 		case 0x1:
@@ -93,12 +115,25 @@ void decode(){
 			PC = NNN-2;
 			break;
 		case 0x2:
+			theStack.push(PC);
+			PC=NNN-2;
                         break;
 		case 0x3:
+			if(!(*registers[X] ^ NN)){
+				PC += 2;
+			}
                         break;
 		case 0x4:
+			if((*registers[X] ^ NN)){
+                                PC += 2;
+                        }
+
                         break;
 		case 0x5:
+			if(!(*registers[X] ^ *registers[Y])){
+                                PC += 2;
+                        }
+
                         break;
 		case 0x6:
 			std::cout<<"SET REGISTER X to NN "<<+X<<"  "<<+NN<<'\n';
@@ -109,15 +144,93 @@ void decode(){
 			*registers[X] += NN;
                         break;
 		case 0x8:
+			switch(N){
+				case(0):
+					*registers[X] = *registers[Y];
+			        	break;
+				case(1):
+					*registers[X] = *registers[X] | *registers[Y];
+                                        break;
+				case(2):
+					*registers[X] = *registers[X] & *registers[Y];
+                                        break;
+				case(3):
+					*registers[X] = *registers[X] ^ *registers[Y];
+
+                                        break;
+	      			case(4):
+					{
+						uint8_t sum;
+					
+						sum  = *registers[X]+*registers[Y];
+						if(sum < *registers[X] || sum < *registers[Y]){
+							vF=1;
+						}
+						else
+							vF=0;
+						*registers[X]=sum;
+					}
+                                        break;
+                                case(5):
+					if(*registers[X] >= *registers[Y]){
+						vF=1;
+					}
+					else{
+						vF=0;
+					}
+					*registers[X] = *registers[X] - *registers[Y];
+                                        break;
+                                case(6):
+					if(SHIFTFLAG){
+						*registers[X] = *registers[Y];					
+					}
+					
+					vF=(*registers[X]&0x01);
+					*registers[X] = (*registers[X] >> 1);
+					
+                                        break;
+                                case(7):
+					if(*registers[Y] >= *registers[X]){
+                                                vF=1;
+                                        }
+                                        else{
+                                                vF=0;
+                                        }
+                                        *registers[X] = *registers[Y] - *registers[X];
+
+                                        break;
+                                case(0xE):
+					 if(SHIFTFLAG){
+                                                *registers[X] = *registers[Y];
+                                        }
+
+                                        vF=((*registers[X]&0x80)>>7);
+                                        *registers[X] = ((*registers[X] << 1)& 0xFF);
+
+                                        break;
+
+			}
                         break;
 		case 0x9:
+			if((*registers[X] ^ *registers[Y])){
+                                PC += 2;
+                        }
+
                         break;
 		case 0xA:
 			I = NNN;
                         break;
 		case 0xB:
+			//JUMP WITH OFFSET
+			{int reg = 0;
+				if(JOFFSETFLAG){
+					reg = +X;
+				}
+			PC = (NNN + *registers[reg] - 2);
+			}
                         break;
 		case 0xC:
+			*registers[X] = (NN & (std::rand() % NN));
                         break;
 		case 0xD:
 			//DRAW
@@ -161,8 +274,44 @@ void decode(){
 			printDisplay();
                         break;
 		case 0xE:
+			if(X>=0x0 && X<=0xF){
+				bool cond = pad.valPressed(X);
+				switch(NN){
+					case 0x9E:	//skip if key pressed
+						if(cond)
+							PC += 2;
+						break;
+					case 0xA1:	//skip if key not pressed
+						if(!cond)
+							PC += 2;
+						break;
+				}
+			}
                         break;
 		case 0xF:
+			switch(NN){
+				case 0x07:
+					*registers[X] = delay;
+					break;
+				case 0x15:
+					delay = *registers[X];
+					break;
+				case 0x18:
+					sound = *registers[X];
+					break;
+				case 0x1E:
+					I = I + *registers[X];
+					break;
+				case 0x0A:
+					//block until key is pressed
+					if(pressedKey != -1){
+						*registers[X] = pressedKey;			
+					}
+					else {
+						PC -= 2;
+					}
+					break;
+			}
                         break;
 
 	
@@ -200,6 +349,7 @@ void loadProgram(){
 }
 int main(){
 	stack test;
+	iCount = 0;	
 	test.push(0b00000010);
 	test.push(0b00000001);
 	PC = PC_START;
@@ -214,11 +364,31 @@ int main(){
 	}
 	loadProgram();
 	printDisplay();
+	counter.init();
+	counter.setIPS(IPS);
+	pad.init();
 	for(int i=0; 1==1;i++){
+		counter.start();
+		pressedKey = pad.pollKeys();
+		if(iCount == std::ceil((0.f+IPS)/60.f)){
+			iCount = 0;
+			//	std::cout << "1 60th of a second!\n";
+                        if(delay){
+                                delay--;
+                        }
+			if(sound){
+				sound--;
+			}
+                }
 		fetch();
 		decode();
+		iCount++;
+		counter.endAndWait();
+		
 	//std::cout<< "X: " << std::hex <<+X << " Y: " << +Y << " N: " << +N << " NN: " << NN << " NNN: " << NNN << "\n";
 	
 	}
+	pad.kill();
+	counter.kill();
 	return 0;
 }
