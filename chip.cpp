@@ -416,7 +416,9 @@ void renderDisplay(SDL_Renderer* render){
 void loadProgram(){
 	std::ifstream program;
 	//program.open("ibm.ch8");
-	program.open("test_opcode.ch8");
+	//program.open("test_opcode.ch8");
+	//program.open("3-corax+.ch8");
+	program.open("pumpkindressup.ch8");
 	int input;
 	int start = PC_START;
 	while(program){
