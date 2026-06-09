@@ -7,7 +7,6 @@
 #include <cmath>
 #include <fstream>
 #include <SDL2/SDL.h>
-#include "font.h"
 #include "timers.h"
 #include "keypad.h"
 
@@ -16,14 +15,33 @@
 #define WIDTH 64
 #define HEIGHT 32
 #define IPS 700
-
+#define FONTSTART 0x050 
 timer counter;
 keypad pad;
 int pressedKey;
+uint8_t font[16][5] = {	
+	{0xF0, 0x90, 0x90, 0x90, 0xF0}, // 0
+	{0x20, 0x60, 0x20, 0x20, 0x70}, // 1
+	{0xF0, 0x10, 0xF0, 0x80, 0xF0}, // 2
+	{0xF0, 0x10, 0xF0, 0x10, 0xF0}, // 3
+	{0x90, 0x90, 0xF0, 0x10, 0x10}, // 4
+	{0xF0, 0x80, 0xF0, 0x10, 0xF0}, // 5
+	{0xF0, 0x80, 0xF0, 0x90, 0xF0}, // 6
+	{0xF0, 0x10, 0x20, 0x40, 0x40}, // 7
+	{0xF0, 0x90, 0xF0, 0x90, 0xF0}, // 8
+	{0xF0, 0x90, 0xF0, 0x10, 0xF0}, // 9
+	{0xF0, 0x90, 0xF0, 0x90, 0x90}, // A
+	{0xE0, 0x90, 0xE0, 0x90, 0xE0}, // B
+	{0xF0, 0x80, 0x80, 0x80, 0xF0}, // C
+	{0xE0, 0x90, 0x90, 0x90, 0xE0}, // D
+	{0xF0, 0x80, 0xF0, 0x80, 0xF0}, // E
+	{0xF0, 0x80, 0xF0, 0x80, 0x80}  // F	
+};
 
 uint8_t iCount; //to count number of instructions completed since last timer decrement
 bool SHIFTFLAG;
 bool JOFFSETFLAG = 0;
+bool runFlag;
 
 uint8_t RAM[4096];
 uint8_t display[WIDTH][HEIGHT];
@@ -81,6 +99,11 @@ struct stack{
 
 stack theStack;
 
+SDL_Window* window;
+SDL_Renderer* renderer;
+
+
+void renderDisplay(SDL_Renderer* render);
 void printDisplay();
 void fetch(){
 	if(PC >=4096)
@@ -96,6 +119,7 @@ void decode(){
 	N = (inst & 0x000F);
 	NN =  (inst & 0x00FF);
 	NNN =  (inst & 0x0FFF);
+	runFlag=true;
 	switch(type){
 		case 0x0:
 			if(X == 0x0 && Y == 0xE && N == 0x0){
@@ -104,9 +128,12 @@ void decode(){
 					memset(display[i],0,sizeof(display[i]));
 				}
 			}
-			else if(X == 0x0 && Y == 0xE && N == 0xE){
+			else if(X == 0x0 && Y == 0xE && N == 0xE){	//Return from subroutine
 				PC=theStack.top();
 				theStack.pop();
+			}
+			else{
+				runFlag=false;	
 			}
 			break;
 		case 0x1:
@@ -114,33 +141,36 @@ void decode(){
 			//DOESN'T increment PC after so set PC to NNN-2
 			PC = NNN-2;
 			break;
-		case 0x2:
+		case 0x2:	//Call Subroutine
 			theStack.push(PC);
 			PC=NNN-2;
                         break;
-		case 0x3:
+		case 0x3: //Skip if equal
 			if(!(*registers[X] ^ NN)){
 				PC += 2;
 			}
                         break;
-		case 0x4:
+		case 0x4: //Skip if not equal
 			if((*registers[X] ^ NN)){
                                 PC += 2;
                         }
 
                         break;
-		case 0x5:
+		case 0x5: //skip if equal
+			//std::cout << "REGISTER " << X << "VALUE = "<< *registers[X];	
+			//std::cout << "REGISTER " << Y << "VALUE = "<< *registers[Y]<<"\n";
 			if(!(*registers[X] ^ *registers[Y])){
                                 PC += 2;
                         }
 
                         break;
+		
 		case 0x6:
-			std::cout<<"SET REGISTER X to NN "<<+X<<"  "<<+NN<<'\n';
+			//std::cout<<"SET REGISTER X to NN "<<+X<<"  "<<+NN<<'\n';
 			*registers[X] = NN;
                         break;
 		case 0x7:
-			std::cout<<"ADDED NN to REG X "<<+X<<"  "<<+NN<<'\n';
+			//std::cout<<"ADDED NN to REG X "<<+X<<"  "<<+NN<<'\n';
 			*registers[X] += NN;
                         break;
 		case 0x8:
@@ -211,7 +241,7 @@ void decode(){
 
 			}
                         break;
-		case 0x9:
+		case 0x9:	//Skip if not equal
 			if((*registers[X] ^ *registers[Y])){
                                 PC += 2;
                         }
@@ -272,6 +302,7 @@ void decode(){
 				}
 			}
 			printDisplay();
+			renderDisplay(renderer);
                         break;
 		case 0xE:
 			if(X>=0x0 && X<=0xF){
@@ -290,25 +321,48 @@ void decode(){
                         break;
 		case 0xF:
 			switch(NN){
-				case 0x07:
+				case 0x07: //Set Register X to delay timer
 					*registers[X] = delay;
 					break;
-				case 0x15:
+				case 0x15: //Set Delay Timer
 					delay = *registers[X];
 					break;
-				case 0x18:
+				case 0x18: //Set Sound Timer
 					sound = *registers[X];
 					break;
-				case 0x1E:
+				case 0x1E:	//Add to index
 					I = I + *registers[X];
 					break;
-				case 0x0A:
+				case 0x0A:	//Get Key
 					//block until key is pressed
 					if(pressedKey != -1){
 						*registers[X] = pressedKey;			
 					}
 					else {
 						PC -= 2;
+					}
+					break;
+				case 0x29:	//Font Character
+					I = FONTSTART + (5*(*registers[X] & 0x0F));
+					break;
+				case 0x33:	//Binary Coded Decimal Conversion
+					RAM[I] = (*registers[X]/100);
+					RAM[I+1] = (*registers[X]/10)%10;
+					RAM[I+2] = (*registers[X]%10);
+					break;
+				case 0x55: //Store
+					{
+						for(int i = 0; i<=X; i++){
+							RAM[I+i] = *registers[i];
+						}
+					}
+					break;
+				case 0x65: //Load
+					{
+
+						for(int i = 0; i<=X; i++){
+							*registers[i]=RAM[I+i];
+						}
 					}
 					break;
 			}
@@ -334,11 +388,37 @@ void printDisplay(){
 	}
 	std::cout<<'\n';
 };
+void renderDisplay(SDL_Renderer* render){
+	SDL_Rect r;
+	r.x = 0;
+	r.y= 0;
+	r.h = 18;
+	r.w = 20;
+	SDL_SetRenderDrawColor(render, 23, 155, 255, 255);
+	SDL_RenderClear(render);
+	SDL_SetRenderDrawColor(render, 0, 255, 0, 255);
+	for(int i = 0; i<HEIGHT; i++){
+		r.y += r.h;
+		r.x = 0;
+                for(int j=0; j<WIDTH; j++){
+			
+			r.x += r.w;
+
+                        //std::cout << +display[j][i]<<" ";
+			if(display[j][i] == 1){
+				SDL_RenderFillRect(render, &r);
+                	}
+		}
+        }
+	SDL_RenderPresent(render);
+
+}
 void loadProgram(){
 	std::ifstream program;
-	program.open("ibm.ch8");
+	//program.open("ibm.ch8");
+	program.open("test_opcode.ch8");
 	int input;
-	int start = PC;
+	int start = PC_START;
 	while(program){
 		input = program.get();
 		std::cout<<std::hex<<input<<" ";
@@ -347,6 +427,21 @@ void loadProgram(){
 	}
 	std::cout << "\n";
 }
+void loadFont(){
+	int cursor = FONTSTART;
+	try{
+		for(int i = 0; i<16; i++){
+			for(int j = 0; j<5; j++){
+				RAM[cursor] = font[i][j];
+				cursor++;
+			}
+		}
+	}
+	catch (...){
+		std::cout << "Error loading font!\n";
+	}
+
+}
 int main(){
 	stack test;
 	iCount = 0;	
@@ -354,25 +449,36 @@ int main(){
 	test.push(0b00000001);
 	PC = PC_START;
 	memset(RAM, 0, sizeof(RAM));
-	while(test.size){
+	/*while(test.size){
 	std::cout << test.top()<<'\n';
 	test.pop();
 	RAM[0]=0x00;
 	RAM[1]=0xE0;
 	RAM[2]=0b01010110;
 	RAM[3]=0b01111000;
-	}
+	}*/
+	runFlag = true;
+	loadFont();
 	loadProgram();
+
+	window = nullptr;
+	renderer = nullptr;
+	SDL_Init(SDL_INIT_EVERYTHING);
+	SDL_CreateWindowAndRenderer(1280, 720,0,&window,&renderer);
 	printDisplay();
 	counter.init();
 	counter.setIPS(IPS);
 	pad.init();
-	for(int i=0; 1==1;i++){
+	pressedKey = -1;
+	while(pressedKey != -2){
 		counter.start();
 		pressedKey = pad.pollKeys();
+		if(pressedKey == -2){
+			break;
+		}
 		if(iCount == std::ceil((0.f+IPS)/60.f)){
 			iCount = 0;
-			//	std::cout << "1 60th of a second!\n";
+			//std::cout << "1 60th of a second!\n";
                         if(delay){
                                 delay--;
                         }
@@ -382,12 +488,15 @@ int main(){
                 }
 		fetch();
 		decode();
+		//renderDisplay(renderer);
 		iCount++;
 		counter.endAndWait();
 		
 	//std::cout<< "X: " << std::hex <<+X << " Y: " << +Y << " N: " << +N << " NN: " << NN << " NNN: " << NNN << "\n";
 	
 	}
+	std::cout<<"Finished Execution\n";
+	SDL_Quit();
 	pad.kill();
 	counter.kill();
 	return 0;
