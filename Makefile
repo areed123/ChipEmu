@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -lSDL2
+CXXFLAGS = -g -lSDL2
 DEPS = timers.h  keypad.h
 OBJ = chip.o timers.o keypad.o
 
