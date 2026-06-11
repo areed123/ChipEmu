@@ -14,7 +14,7 @@
 #define PC_START 0x200
 #define WIDTH 64
 #define HEIGHT 32
-#define IPS 500
+#define IPS 360
 #define FONTSTART 0x050 
 timer counter;
 keypad pad;
@@ -493,14 +493,23 @@ int main(){
 	while(running){
 		emuInit();
 		loadFont();
+		int validIFlag;
 	do{
+		validIFlag = 0;
 		std::ifstream program;
 		std::cout << "Provide The filepath to the rom you want to read\nOr type 'q' to exit the emulator\n";
 		std::cin >> filePath;
 		if(filePath.compare("q") == 0){
 			return 0; //exited normally
 		}
-	}while(loadProgram(filePath));
+		else if(filePath.size() < 3){
+			std::cout << "Invalid Input\n";
+			validIFlag = 1;
+		}
+		else{
+			validIFlag=loadProgram(filePath);
+		}	
+	}while(validIFlag==1);
 	
 	window = nullptr;
 	renderer = nullptr;
@@ -508,7 +517,7 @@ int main(){
 	SDL_CreateWindowAndRenderer(1280, 720,0,&window,&renderer);
 	//printDisplay();
 	//counter.init();
-	std::cout << "Setting IPS to " << IPS << '\n';
+	std::cout << "Setting IPS to " <<std::dec << IPS << '\n';
 	counter.setIPS(IPS);
 	//pad.init();
 	pressedKey = -1;
