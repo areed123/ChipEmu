@@ -413,21 +413,29 @@ void renderDisplay(SDL_Renderer* render){
 	SDL_RenderPresent(render);
 
 }
-void loadProgram(){
+
+int loadProgram(){
 	std::ifstream program;
-	//program.open("ibm.ch8");
-	//program.open("test_opcode.ch8");
-	//program.open("3-corax+.ch8");
-	program.open("pumpkindressup.ch8");
-	int input;
-	int start = PC_START;
-	while(program){
-		input = program.get();
-		std::cout<<std::hex<<input<<" ";
-		RAM[start]=static_cast<uint8_t>(input);
-		start++;
+	std::string filePath;
+	std::cout << "Provide The filepath to the rom you want to read\n";
+	std::cin >> filePath;
+	program.open(filePath);
+	if(filePath.substr(filePath.size()-3,3).compare("ch8")==0 && program.is_open()){
+		int input;
+		int start = PC_START;
+		while(program){
+			input = program.get();
+			std::cout<<std::hex<<input<<" ";
+			RAM[start]=static_cast<uint8_t>(input);
+			start++;
+		}
+		std::cout << "\n";
+		return 0;
 	}
-	std::cout << "\n";
+	else{
+		std::cout << "Filepath invalid. Please enter a valid Filepath to a .ch8 file\n";
+		return 1;
+	}
 }
 void loadFont(){
 	int cursor = FONTSTART;
@@ -461,8 +469,7 @@ int main(){
 	}*/
 	runFlag = true;
 	loadFont();
-	loadProgram();
-
+	while(loadProgram()){}
 	window = nullptr;
 	renderer = nullptr;
 	SDL_Init(SDL_INIT_EVERYTHING);
