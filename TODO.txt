@@ -1,0 +1,7 @@
+KEYPAD.CPP: 
+  Use SDL Scancodes instead of keys to maintain usability across different keyboard layouts
+CHIP.CPP:
+  Improve configuration (IPS, configurable behavior of certain instructions)
+TIMERS.CPP:
+  Validate timing for delay and sound registers
+  Add pause function
