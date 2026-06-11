@@ -7,19 +7,19 @@ This project was written in C++ and uses/requires the SDL2 library to handle key
 The emulator uses the standard controls as most CHIP-8 emulators 
 Qwerty Key to CHIP-8 Keypad
 ---------------------------
-1 -> 1
-2 -> 2
-3 -> 3
-4 -> C
-q -> 4
-w -> 5
-e -> 6
-r -> D
-a -> 7
-s -> 8
-d -> 9
-f -> E
-z -> A
-x -> O
-c -> B
-v -> F
+1 -> 1  
+2 -> 2  
+3 -> 3  
+4 -> C  
+q -> 4  
+w -> 5  
+e -> 6  
+r -> D  
+a -> 7  
+s -> 8  
+d -> 9  
+f -> E  
+z -> A  
+x -> O  
+c -> B  
+v -> F  
