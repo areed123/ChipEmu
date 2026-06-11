@@ -14,7 +14,7 @@
 #define PC_START 0x200
 #define WIDTH 64
 #define HEIGHT 32
-#define IPS 700
+#define IPS 360
 #define FONTSTART 0x050 
 timer counter;
 keypad pad;
@@ -301,7 +301,7 @@ void decode(){
 					}
 				}
 			}
-			printDisplay();
+			//printDisplay();
 			renderDisplay(renderer);
                         break;
 		case 0xE:
@@ -384,7 +384,7 @@ void printDisplay(){
 			}
 			//std::cout << +display[j][i]<<" ";
 		}
-		std::cout<<" NEW LINE "<<'\n';
+		std::cout<<'\n';
 	}
 	std::cout<<'\n';
 };
@@ -413,19 +413,31 @@ void renderDisplay(SDL_Renderer* render){
 	SDL_RenderPresent(render);
 
 }
-void loadProgram(){
+
+int loadProgram(std::string filePath){
 	std::ifstream program;
-	//program.open("ibm.ch8");
-	program.open("test_opcode.ch8");
-	int input;
-	int start = PC_START;
-	while(program){
-		input = program.get();
-		std::cout<<std::hex<<input<<" ";
-		RAM[start]=static_cast<uint8_t>(input);
-		start++;
+	//std::string filePath;
+	//std::cout << "Provide The filepath to the rom you want to read\n";
+	//std::cin >> filePath;
+	program.open(filePath);
+	if(filePath.substr(filePath.size()-3,3).compare("ch8")==0 && program.is_open()){
+		int input;
+		int start = PC_START;
+		while(program){
+			input = program.get();
+			std::cout<<std::hex<<input<<" ";
+			RAM[start]=static_cast<uint8_t>(input);
+			start++;
+		}
+		std::cout << "\n";
+		program.close();	
+		return 0;
+
 	}
-	std::cout << "\n";
+	else{
+		std::cout << "Filepath invalid. Please enter a valid filepath to a .ch8 file\n";
+		return 1;
+	}
 }
 void loadFont(){
 	int cursor = FONTSTART;
@@ -442,13 +454,30 @@ void loadFont(){
 	}
 
 }
+void emuInit(){//initializes the emulator
+	PC = PC_START;
+	int i = 0;
+	while(i<16){
+		*registers[i]=0;
+		i++;
+	}
+	for(int x = 0; x<64; x++){
+		for(int y = 0; y<32; y++){
+			display[x][y]=0;
+		}
+	}
+	I = 0;
+	delay = 0;
+	sound = 0;
+	memset(RAM, 0, sizeof(RAM));
+}
 int main(){
 	stack test;
 	iCount = 0;	
 	test.push(0b00000010);
 	test.push(0b00000001);
-	PC = PC_START;
-	memset(RAM, 0, sizeof(RAM));
+	//PC = PC_START;
+	//memset(RAM, 0, sizeof(RAM));
 	/*while(test.size){
 	std::cout << test.top()<<'\n';
 	test.pop();
@@ -458,17 +487,39 @@ int main(){
 	RAM[3]=0b01111000;
 	}*/
 	runFlag = true;
-	loadFont();
-	loadProgram();
-
+	//loadFont();
+	bool running = true;
+	std::string filePath;
+	while(running){
+		emuInit();
+		loadFont();
+		int validIFlag;
+	do{
+		validIFlag = 0;
+		std::ifstream program;
+		std::cout << "Provide The filepath to the rom you want to read\nOr type 'q' to exit the emulator\n";
+		std::cin >> filePath;
+		if(filePath.compare("q") == 0){
+			return 0; //exited normally
+		}
+		else if(filePath.size() < 3){
+			std::cout << "Invalid Input\n";
+			validIFlag = 1;
+		}
+		else{
+			validIFlag=loadProgram(filePath);
+		}	
+	}while(validIFlag==1);
+	
 	window = nullptr;
 	renderer = nullptr;
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_CreateWindowAndRenderer(1280, 720,0,&window,&renderer);
-	printDisplay();
-	counter.init();
+	//printDisplay();
+	//counter.init();
+	std::cout << "Setting IPS to " <<std::dec << IPS << '\n';
 	counter.setIPS(IPS);
-	pad.init();
+	//pad.init();
 	pressedKey = -1;
 	while(pressedKey != -2){
 		counter.start();
@@ -497,7 +548,8 @@ int main(){
 	}
 	std::cout<<"Finished Execution\n";
 	SDL_Quit();
-	pad.kill();
-	counter.kill();
+	//pad.kill();
+	//counter.kill();
+	}
 	return 0;
 }
