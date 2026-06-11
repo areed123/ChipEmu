@@ -14,7 +14,7 @@
 #define PC_START 0x200
 #define WIDTH 64
 #define HEIGHT 32
-#define IPS 700
+#define IPS 500
 #define FONTSTART 0x050 
 timer counter;
 keypad pad;
@@ -430,7 +430,7 @@ int loadProgram(std::string filePath){
 			start++;
 		}
 		std::cout << "\n";
-		
+		program.close();	
 		return 0;
 
 	}
@@ -454,13 +454,30 @@ void loadFont(){
 	}
 
 }
+void emuInit(){//initializes the emulator
+	PC = PC_START;
+	int i = 0;
+	while(i<16){
+		*registers[i]=0;
+		i++;
+	}
+	for(int x = 0; x<64; x++){
+		for(int y = 0; y<32; y++){
+			display[x][y]=0;
+		}
+	}
+	I = 0;
+	delay = 0;
+	sound = 0;
+	memset(RAM, 0, sizeof(RAM));
+}
 int main(){
 	stack test;
 	iCount = 0;	
 	test.push(0b00000010);
 	test.push(0b00000001);
-	PC = PC_START;
-	memset(RAM, 0, sizeof(RAM));
+	//PC = PC_START;
+	//memset(RAM, 0, sizeof(RAM));
 	/*while(test.size){
 	std::cout << test.top()<<'\n';
 	test.pop();
@@ -470,10 +487,12 @@ int main(){
 	RAM[3]=0b01111000;
 	}*/
 	runFlag = true;
-	loadFont();
+	//loadFont();
 	bool running = true;
 	std::string filePath;
 	while(running){
+		emuInit();
+		loadFont();
 	do{
 		std::ifstream program;
 		std::cout << "Provide The filepath to the rom you want to read\nOr type 'q' to exit the emulator\n";
@@ -482,14 +501,16 @@ int main(){
 			return 0; //exited normally
 		}
 	}while(loadProgram(filePath));
+	
 	window = nullptr;
 	renderer = nullptr;
 	SDL_Init(SDL_INIT_EVERYTHING);
 	SDL_CreateWindowAndRenderer(1280, 720,0,&window,&renderer);
-	printDisplay();
-	counter.init();
+	//printDisplay();
+	//counter.init();
+	std::cout << "Setting IPS to " << IPS << '\n';
 	counter.setIPS(IPS);
-	pad.init();
+	//pad.init();
 	pressedKey = -1;
 	while(pressedKey != -2){
 		counter.start();
@@ -518,8 +539,8 @@ int main(){
 	}
 	std::cout<<"Finished Execution\n";
 	SDL_Quit();
-	pad.kill();
-	counter.kill();
+	//pad.kill();
+	//counter.kill();
 	}
 	return 0;
 }
