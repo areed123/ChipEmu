@@ -40,11 +40,11 @@ int keypad::pollKeys(){
 	bool flag = false;
 	int val = -1;
 	while(SDL_PollEvent(&event) != 0 ){
-		std::cout << "Polling Keys \n";
+		//std::cout << "Polling Keys \n";
 		if(!flag){
 			if(event.type == SDL_KEYDOWN){
 				if(event.key.keysym.sym == SDLK_ESCAPE){
-					std::cout << "ESCAPE PRESSED\n";
+					//std::cout << "ESCAPE PRESSED\n";
 					return -2;//exit code for the emulator
 				}
 				flag = true;

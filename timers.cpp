@@ -55,7 +55,7 @@ void timer::endAndWait(){
 	end=SDL_GetPerformanceCounter();
 	float elapsed = (end - step)/ (float)SDL_GetPerformanceFrequency() * 1000.f;
 	if(elapsed >= msPerInst){
-		std::cout<<"ERROR!\n";
+	//	std::cout<<"ERROR!\n";
 	}
 	else{
 	SDL_Delay(msPerInst - elapsed);

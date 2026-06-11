@@ -301,7 +301,7 @@ void decode(){
 					}
 				}
 			}
-			printDisplay();
+			//printDisplay();
 			renderDisplay(renderer);
                         break;
 		case 0xE:
@@ -384,7 +384,7 @@ void printDisplay(){
 			}
 			//std::cout << +display[j][i]<<" ";
 		}
-		std::cout<<" NEW LINE "<<'\n';
+		std::cout<<'\n';
 	}
 	std::cout<<'\n';
 };
@@ -414,11 +414,11 @@ void renderDisplay(SDL_Renderer* render){
 
 }
 
-int loadProgram(){
+int loadProgram(std::string filePath){
 	std::ifstream program;
-	std::string filePath;
-	std::cout << "Provide The filepath to the rom you want to read\n";
-	std::cin >> filePath;
+	//std::string filePath;
+	//std::cout << "Provide The filepath to the rom you want to read\n";
+	//std::cin >> filePath;
 	program.open(filePath);
 	if(filePath.substr(filePath.size()-3,3).compare("ch8")==0 && program.is_open()){
 		int input;
@@ -430,10 +430,12 @@ int loadProgram(){
 			start++;
 		}
 		std::cout << "\n";
+		
 		return 0;
+
 	}
 	else{
-		std::cout << "Filepath invalid. Please enter a valid Filepath to a .ch8 file\n";
+		std::cout << "Filepath invalid. Please enter a valid filepath to a .ch8 file\n";
 		return 1;
 	}
 }
@@ -469,7 +471,17 @@ int main(){
 	}*/
 	runFlag = true;
 	loadFont();
-	while(loadProgram()){}
+	bool running = true;
+	std::string filePath;
+	while(running){
+	do{
+		std::ifstream program;
+		std::cout << "Provide The filepath to the rom you want to read\nOr type 'q' to exit the emulator\n";
+		std::cin >> filePath;
+		if(filePath.compare("q") == 0){
+			return 0; //exited normally
+		}
+	}while(loadProgram(filePath));
 	window = nullptr;
 	renderer = nullptr;
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -508,5 +520,6 @@ int main(){
 	SDL_Quit();
 	pad.kill();
 	counter.kill();
+	}
 	return 0;
 }
